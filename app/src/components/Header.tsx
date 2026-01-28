@@ -47,7 +47,7 @@ export default function Header() {
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center space-x-3 p-2 hover:bg-gray-100 rounded-lg"
             >
-              <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+              <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white font-semibold">
                 {user?.first_name?.charAt(0) || user?.username?.charAt(0).toUpperCase() || 'U'}
               </div>
               <div className="text-left">

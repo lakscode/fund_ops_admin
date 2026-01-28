@@ -31,15 +31,12 @@ PROPERTY_STATUSES = ["active", "under_development", "sold", "under_contract"]
 
 INVESTOR_TYPES = ["institutional", "individual", "family_office", "pension_fund", "endowment", "sovereign_wealth"]
 
+# Organization-level roles (not platform level)
 ROLES = [
-    "super_admin",
-    "fund_accountant",
-    "fund_administrator",
-    "cfo",
-    "general_partner",
-    "investor",
-    "external_auditor",
-    "legal_compliance",
+    "admin",          # Organization admin - can manage users in their org
+    "fund_manager",   # Can manage funds
+    "analyst",        # Can view and analyze data
+    "viewer",         # Read-only access
 ]
 
 FIRST_NAMES = ["James", "Mary", "John", "Patricia", "Robert", "Jennifer", "Michael", "Linda",
@@ -366,28 +363,51 @@ def create_properties(db, funds: list, count: int = 40) -> list:
     return properties
 
 
-def create_admin_user(db, organizations: list) -> dict:
-    """Create a super admin user for testing"""
-    admin = {
-        "username": "admin",
-        "email": "admin@fundops.com",
+def create_admin_users(db, organizations: list) -> list:
+    """Create super admin and org admin users for testing"""
+    admins = []
+
+    # 1. Platform Super Admin (can access everything)
+    super_admin = {
+        "username": "superadmin",
+        "email": "superadmin@fundops.com",
         "hashed_password": pwd_context.hash("admin123"),
-        "first_name": "System",
-        "last_name": "Administrator",
+        "first_name": "Platform",
+        "last_name": "Super Admin",
         "is_active": True,
-        "is_superuser": True,
+        "is_superuser": True,  # Platform-level super admin
         "created_at": datetime.now(timezone.utc),
         "updated_at": None
     }
-    result = db.users.insert_one(admin)
-    admin["_id"] = result.inserted_id
+    result = db.users.insert_one(super_admin)
+    super_admin["_id"] = result.inserted_id
+    admins.append(super_admin)
 
-    # Map admin to all organizations as super_admin
+    # Super admin doesn't need org mappings - they can see all orgs via is_superuser flag
+    print(f"Created platform super admin (username: superadmin, password: admin123)")
+
+    # 2. System Admin - has 'admin' role in ALL organizations
+    sys_admin = {
+        "username": "sysadmin",
+        "email": "sysadmin@fundops.com",
+        "hashed_password": pwd_context.hash("admin123"),
+        "first_name": "System",
+        "last_name": "Admin",
+        "is_active": True,
+        "is_superuser": False,  # Not a platform super admin, but admin in all orgs
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": None
+    }
+    result = db.users.insert_one(sys_admin)
+    sys_admin["_id"] = result.inserted_id
+    admins.append(sys_admin)
+
+    # Map system admin to ALL organizations with 'admin' role
     for i, org in enumerate(organizations):
         mapping = {
-            "user_id": str(admin["_id"]),
+            "user_id": str(sys_admin["_id"]),
             "organization_id": str(org["_id"]),
-            "role": "super_admin",
+            "role": "admin",  # Organization-level admin role
             "is_primary": (i == 0),
             "joined_at": datetime.now(timezone.utc),
             "created_at": datetime.now(timezone.utc),
@@ -395,8 +415,72 @@ def create_admin_user(db, organizations: list) -> dict:
         }
         db.user_organizations.insert_one(mapping)
 
-    print(f"Created admin user (username: admin, password: admin123)")
-    return admin
+    print(f"Created system admin (username: sysadmin, password: admin123) - admin in all {len(organizations)} orgs")
+
+    # 2. Organization Admin for first org (can manage users in their org only)
+    if len(organizations) > 0:
+        org_admin = {
+            "username": "orgadmin",
+            "email": "orgadmin@fundops.com",
+            "hashed_password": pwd_context.hash("admin123"),
+            "first_name": "Organization",
+            "last_name": "Admin",
+            "is_active": True,
+            "is_superuser": False,  # NOT a platform super admin
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": None
+        }
+        result = db.users.insert_one(org_admin)
+        org_admin["_id"] = result.inserted_id
+        admins.append(org_admin)
+
+        # Map org admin to first two organizations with 'admin' role
+        for i, org in enumerate(organizations[:2]):
+            mapping = {
+                "user_id": str(org_admin["_id"]),
+                "organization_id": str(org["_id"]),
+                "role": "admin",  # Organization-level admin role
+                "is_primary": (i == 0),
+                "joined_at": datetime.now(timezone.utc),
+                "created_at": datetime.now(timezone.utc),
+                "updated_at": None
+            }
+            db.user_organizations.insert_one(mapping)
+
+        print(f"Created org admin (username: orgadmin, password: admin123) - admin for {organizations[0]['name']}")
+
+    # 3. Regular user (viewer role) for testing
+    if len(organizations) > 0:
+        regular_user = {
+            "username": "viewer",
+            "email": "viewer@fundops.com",
+            "hashed_password": pwd_context.hash("admin123"),
+            "first_name": "Regular",
+            "last_name": "Viewer",
+            "is_active": True,
+            "is_superuser": False,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": None
+        }
+        result = db.users.insert_one(regular_user)
+        regular_user["_id"] = result.inserted_id
+        admins.append(regular_user)
+
+        # Map viewer to first org with 'viewer' role
+        mapping = {
+            "user_id": str(regular_user["_id"]),
+            "organization_id": str(organizations[0]["_id"]),
+            "role": "viewer",  # Read-only role
+            "is_primary": True,
+            "joined_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": None
+        }
+        db.user_organizations.insert_one(mapping)
+
+        print(f"Created viewer user (username: viewer, password: admin123) - viewer in {organizations[0]['name']}")
+
+    return admins
 
 
 def seed_database():
@@ -434,7 +518,7 @@ def seed_database():
         organizations = create_organizations(db)
         users = create_users(db, count=30)
         create_user_organization_mappings(db, users, organizations)
-        admin = create_admin_user(db, organizations)
+        admins = create_admin_users(db, organizations)
         funds = create_funds(db, organizations)
         investors = create_investors(db, organizations, count=50)
         allocations_count = create_investor_fund_allocations(db, investors, funds)
@@ -458,13 +542,16 @@ def seed_database():
         print("=" * 50)
         print("\nSummary:")
         print(f"  - Organizations: {len(organizations)}")
-        print(f"  - Users: {len(users) + 1}")  # +1 for admin
+        print(f"  - Users: {len(users) + len(admins)}")
         print(f"  - Funds: {len(funds)}")
         print(f"  - Investors: {len(investors)}")
         print(f"  - Investor-Fund Allocations: {allocations_count}")
         print(f"  - Properties: {len(properties)}")
-        print("\nTest credentials:")
-        print("  - Admin: username=admin, password=admin123")
+        print("\nTest credentials (password: admin123):")
+        print("  - Platform Super Admin: username=superadmin (is_superuser=true, platform level)")
+        print("  - System Admin: username=sysadmin (admin role in ALL organizations)")
+        print("  - Org Admin: username=orgadmin (admin role in first 2 orgs only)")
+        print("  - Viewer: username=viewer (viewer role, read-only access)")
         print("  - Other users: password=password123")
 
     except Exception as e:

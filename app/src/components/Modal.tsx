@@ -85,7 +85,7 @@ export function ConfirmModal({
 
   const colorClasses = {
     red: 'bg-red-600 hover:bg-red-700',
-    blue: 'bg-blue-600 hover:bg-blue-700',
+    blue: 'bg-primary-500 hover:bg-primary-600',
   };
 
   return (

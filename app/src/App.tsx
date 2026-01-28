@@ -8,15 +8,9 @@ import Dashboard from './pages/Dashboard';
 import Funds from './pages/Funds';
 import Investors from './pages/Investors';
 import Properties from './pages/Properties';
+import Settings from './pages/Settings';
 
-// Placeholder pages
-function Users() {
-  return <div className="text-2xl font-bold">Users Page</div>;
-}
 
-function Settings() {
-  return <div className="text-2xl font-bold">Settings Page</div>;
-}
 
 function App() {
   return (
@@ -31,7 +25,6 @@ function App() {
               <Route path="funds" element={<Funds />} />
               <Route path="investors" element={<Investors />} />
               <Route path="properties" element={<Properties />} />
-              <Route path="users" element={<Users />} />
               <Route path="settings" element={<Settings />} />
             </Route>
           </Routes>

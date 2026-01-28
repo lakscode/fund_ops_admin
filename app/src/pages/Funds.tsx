@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { MoreVertical, Upload, Download, FileDown } from 'lucide-react';
 import { useOrganization } from '../contexts/OrganizationContext';
 import { fundService } from '../services/funds';
 import { Fund } from '../types';
 import Modal, { ConfirmModal } from '../components/Modal';
+import api from '../services/api';
 
 interface FundFormData {
   name: string;
@@ -50,6 +52,14 @@ export default function Funds() {
   const [formData, setFormData] = useState<FundFormData>(initialFormData);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Import/Export states
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadFunds();
@@ -156,6 +166,107 @@ export default function Funds() {
     }
   };
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Export handler
+  const handleExport = async (format: 'xlsx' | 'json') => {
+    if (!currentOrganization) return;
+    setIsMenuOpen(false);
+
+    try {
+      const response = await api.get(`/funds/export`, {
+        params: { organization_id: currentOrganization.id, format },
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `funds_export.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Failed to export:', err);
+      setError('Failed to export funds');
+    }
+  };
+
+  // Download template
+  const handleDownloadTemplate = async (format: 'xlsx' | 'json') => {
+    setIsMenuOpen(false);
+
+    try {
+      const response = await api.get(`/funds/template`, {
+        params: { format },
+        responseType: 'blob',
+      });
+
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `funds_template.${format}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('Failed to download template:', err);
+      setError('Failed to download template');
+    }
+  };
+
+  // Import handler
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !currentOrganization) return;
+
+    setIsImporting(true);
+    setIsMenuOpen(false);
+    setImportResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await api.post(`/funds/import`, formData, {
+        params: { organization_id: currentOrganization.id },
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setImportResult(response.data);
+      setIsImportModalOpen(true);
+      if (response.data.success > 0) {
+        loadFunds();
+      }
+    } catch (err: any) {
+      console.error('Failed to import:', err);
+      setImportResult({
+        success: 0,
+        failed: 0,
+        errors: [err.response?.data?.detail || 'Failed to import funds'],
+      });
+      setIsImportModalOpen(true);
+    } finally {
+      setIsImporting(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const formatCurrency = (amount: number | null) => {
     if (amount === null || amount === undefined) return '-';
     return new Intl.NumberFormat('en-US', {
@@ -218,13 +329,85 @@ export default function Funds() {
           <h1 className="text-2xl font-bold text-gray-900">Funds</h1>
           <p className="text-gray-500">Manage funds for {currentOrganization.name}</p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          + Add Fund
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={openAddModal}
+            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+          >
+            + Add Fund
+          </button>
+
+          {/* Import/Export Menu */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title="More options"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+
+            {isMenuOpen && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10">
+                <div className="pl-11 pr-4 py-2 text-xs font-semibold text-gray-500 uppercase">Import</div>
+                <label className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 cursor-pointer">
+                  <Upload className="w-4 h-4 mr-3" />
+                  Import from File
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".xlsx,.xls,.json"
+                    onChange={handleImport}
+                    className="hidden"
+                  />
+                </label>
+
+                <div className="border-t border-gray-200 my-1"></div>
+                <div className="pl-11 pr-4 py-2 text-xs font-semibold text-gray-500 uppercase">Download Templates</div>
+                <button
+                  onClick={() => handleDownloadTemplate('xlsx')}
+                  className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100"
+                >
+                  <FileDown className="w-4 h-4 mr-3" />
+                  Template - XLSX
+                </button>
+                <button
+                  onClick={() => handleDownloadTemplate('json')}
+                  className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100"
+                >
+                  <FileDown className="w-4 h-4 mr-3" />
+                  Template - JSON
+                </button>
+
+                <div className="border-t border-gray-200 my-1"></div>
+                <div className="pl-11 pr-4 py-2 text-xs font-semibold text-gray-500 uppercase">Export</div>
+                <button
+                  onClick={() => handleExport('xlsx')}
+                  className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100"
+                >
+                  <Download className="w-4 h-4 mr-3" />
+                  Export as XLSX
+                </button>
+                <button
+                  onClick={() => handleExport('json')}
+                  className="flex items-center w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100"
+                >
+                  <Download className="w-4 h-4 mr-3" />
+                  Export as JSON
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {/* Importing indicator */}
+      {isImporting && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded flex items-center">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-700 mr-3"></div>
+          Importing funds...
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -482,7 +665,7 @@ export default function Funds() {
             <button
               type="submit"
               disabled={isSaving}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
             >
               {isSaving ? 'Saving...' : editingFund ? 'Update Fund' : 'Create Fund'}
             </button>
@@ -501,6 +684,49 @@ export default function Funds() {
         confirmColor="red"
         isLoading={isSaving}
       />
+
+      {/* Import Result Modal */}
+      <Modal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        title="Import Results"
+        size="md"
+      >
+        {importResult && (
+          <div className="space-y-4">
+            <div className="flex space-x-4">
+              <div className="flex-1 bg-green-50 border border-green-200 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-green-600">{importResult.success}</p>
+                <p className="text-sm text-green-700">Successful</p>
+              </div>
+              <div className="flex-1 bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+                <p className="text-2xl font-bold text-red-600">{importResult.failed}</p>
+                <p className="text-sm text-red-700">Failed</p>
+              </div>
+            </div>
+
+            {importResult.errors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm font-medium text-red-800 mb-2">Errors:</p>
+                <ul className="text-sm text-red-700 space-y-1 max-h-40 overflow-y-auto">
+                  {importResult.errors.map((error, idx) => (
+                    <li key={idx}>{error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setIsImportModalOpen(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

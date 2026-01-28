@@ -241,43 +241,39 @@ export default function Dashboard() {
                 className="px-6 py-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
                 onClick={() => toggleFundExpanded(fund.id)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <svg
-                      className={`w-5 h-5 text-gray-500 transition-transform ${
-                        expandedFunds.has(fund.id) ? 'rotate-90' : ''
-                      }`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{fund.name}</h3>
-                      <p className="text-sm text-gray-500">{fund.fund_type || 'No type'}</p>
-                    </div>
+                <div className="grid grid-cols-[auto_1fr_200px_80px_80px_100px] items-center gap-4">
+                  <svg
+                    className={`w-5 h-5 text-gray-500 transition-transform ${
+                      expandedFunds.has(fund.id) ? 'rotate-90' : ''
+                    }`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{fund.name}</h3>
+                    <p className="text-sm text-gray-500">{fund.fund_type || 'No type'}</p>
                   </div>
-                  <div className="flex items-center space-x-6">
-                    <div className="text-right min-w-[180px]">
-                      <p className="text-sm text-gray-500">Target / Current</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {formatCurrency(fund.target_size)} / {formatCurrency(fund.current_size)}
-                      </p>
-                    </div>
-                    <div className="text-right min-w-[80px]">
-                      <p className="text-sm text-gray-500">Investors</p>
-                      <p className="text-sm font-medium text-gray-900">{fund.investors.length}</p>
-                    </div>
-                    <div className="text-right min-w-[80px]">
-                      <p className="text-sm text-gray-500">Properties</p>
-                      <p className="text-sm font-medium text-gray-900">{fund.properties.length}</p>
-                    </div>
-                    <div className="min-w-[70px] text-center">
-                      <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(fund.status)}`}>
-                        {fund.status}
-                      </span>
-                    </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Target / Current</p>
+                    <p className="text-sm font-medium text-gray-900">
+                      {formatCurrency(fund.target_size)} / {formatCurrency(fund.current_size)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Investors</p>
+                    <p className="text-sm font-medium text-gray-900">{fund.investors.length}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-500">Properties</p>
+                    <p className="text-sm font-medium text-gray-900">{fund.properties.length}</p>
+                  </div>
+                  <div className="text-center">
+                    <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(fund.status)}`}>
+                      {fund.status}
+                    </span>
                   </div>
                 </div>
               </div>

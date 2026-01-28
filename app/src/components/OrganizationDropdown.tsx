@@ -32,7 +32,7 @@ export default function OrganizationDropdown() {
         className="w-full flex items-center justify-between px-3 py-2 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors"
       >
         <div className="flex items-center">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-semibold">
+          <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center text-white font-semibold">
             {currentOrganization?.name?.charAt(0).toUpperCase() || 'O'}
           </div>
           <div className="ml-3 text-left">
@@ -67,7 +67,7 @@ export default function OrganizationDropdown() {
                 currentOrganization?.id === org.id ? 'bg-gray-700' : ''
               }`}
             >
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-semibold">
+              <div className="w-8 h-8 bg-primary-500 rounded-lg flex items-center justify-center text-white font-semibold">
                 {org.name.charAt(0).toUpperCase()}
               </div>
               <div className="ml-3 text-left flex-1">
