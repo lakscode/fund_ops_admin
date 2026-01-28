@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(del \"d:\\\\Claude_Demo\\\\fund_ops_admin\\\\api\\\\repositories\\\\sql_repository.py\" \"d:\\\\Claude_Demo\\\\fund_ops_admin\\\\api\\\\repositories\\\\base.py\")"
+    ]
+  }
+}
