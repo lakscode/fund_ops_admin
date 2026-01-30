@@ -1,7 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useOrganization } from '../contexts/OrganizationContext';
 import OrganizationDropdown from './OrganizationDropdown';
+
+interface SidebarProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
 
 interface NavItem {
   name: string;
@@ -59,20 +65,39 @@ const navItems: NavItem[] = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const { currentOrganization } = useOrganization();
 
   return (
-    <div className="w-64 bg-gray-900 text-white flex flex-col h-screen">
+    <div className={`${isCollapsed ? 'w-16' : 'w-64'} bg-gray-900 text-white flex flex-col h-screen transition-all duration-300 relative`}>
+      {/* Toggle Button */}
+      <button
+        onClick={onToggle}
+        className="absolute -right-3 top-6 bg-gray-900 border border-gray-700 rounded-full p-1 hover:bg-gray-800 transition-colors z-10"
+        title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      >
+        {isCollapsed ? (
+          <ChevronRight className="w-4 h-4 text-gray-400" />
+        ) : (
+          <ChevronLeft className="w-4 h-4 text-gray-400" />
+        )}
+      </button>
+
       {/* Logo */}
       <div className="p-4 border-b border-gray-800">
-        <h1 className="text-xl font-bold">Fund Ops Admin</h1>
+        {isCollapsed ? (
+          <h1 className="text-xl font-bold text-center">FO</h1>
+        ) : (
+          <h1 className="text-xl font-bold">Fund Ops Admin</h1>
+        )}
       </div>
 
       {/* Organization Dropdown */}
-      <div className="p-4 border-b border-gray-800">
-        <OrganizationDropdown />
-      </div>
+      {!isCollapsed && (
+        <div className="p-4 border-b border-gray-800">
+          <OrganizationDropdown />
+        </div>
+      )}
 
       {/* Current Role Badge */}
       {currentOrganization && (
@@ -84,13 +109,14 @@ export default function Sidebar() {
       )}
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+      <nav className={`flex-1 ${isCollapsed ? 'p-2' : 'p-4'} space-y-1 overflow-y-auto`}>
         {navItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
+            title={isCollapsed ? item.name : undefined}
             className={({ isActive }) =>
-              `flex items-center px-4 py-2 rounded-lg transition-colors ${
+              `flex items-center ${isCollapsed ? 'justify-center px-2' : 'px-4'} py-2 rounded-lg transition-colors ${
                 isActive
                   ? 'bg-primary-500 text-white'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
@@ -98,14 +124,14 @@ export default function Sidebar() {
             }
           >
             {item.icon}
-            <span className="ml-3">{item.name}</span>
+            {!isCollapsed && <span className="ml-3">{item.name}</span>}
           </NavLink>
         ))}
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-800 text-sm text-gray-400">
-        v1.0.0
+      <div className={`p-4 border-t border-gray-800 text-sm text-gray-400 ${isCollapsed ? 'text-center' : ''}`}>
+        {isCollapsed ? 'v1' : 'v1.0.0'}
       </div>
     </div>
   );

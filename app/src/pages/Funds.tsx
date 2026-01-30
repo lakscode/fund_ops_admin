@@ -4,7 +4,9 @@ import { useOrganization } from '../contexts/OrganizationContext';
 import { fundService } from '../services/funds';
 import { Fund } from '../types';
 import Modal, { ConfirmModal } from '../components/Modal';
+import Pagination from '../components/Pagination';
 import api from '../services/api';
+import { FUND_TYPES, FUND_STATUSES, PAGE_SIZE_DEFAULT } from '../constants';
 
 interface FundFormData {
   name: string;
@@ -23,20 +25,6 @@ const initialFormData: FundFormData = {
   status: 'fundraising',
   description: '',
 };
-
-const FUND_TYPES = [
-  { value: 'real_estate', label: 'Real Estate' },
-  { value: 'private_equity', label: 'Private Equity' },
-  { value: 'hedge_fund', label: 'Hedge Fund' },
-  { value: 'venture_capital', label: 'Venture Capital' },
-  { value: 'infrastructure', label: 'Infrastructure' },
-];
-
-const FUND_STATUSES = [
-  { value: 'fundraising', label: 'Fundraising' },
-  { value: 'active', label: 'Active' },
-  { value: 'closed', label: 'Closed' },
-];
 
 export default function Funds() {
   const { currentOrganization } = useOrganization();
@@ -60,6 +48,10 @@ export default function Funds() {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT);
 
   useEffect(() => {
     loadFunds();
@@ -487,12 +479,16 @@ export default function Funds() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {[...funds].sort((a, b) => a.name.localeCompare(b.name)).map((fund) => {
-                  const progress = fund.target_size
-                    ? Math.min((fund.current_size / fund.target_size) * 100, 100)
-                    : 0;
-                  return (
-                    <tr key={fund.id} className="hover:bg-gray-50">
+                {(() => {
+                  const sortedFunds = [...funds].sort((a, b) => a.name.localeCompare(b.name));
+                  const startIndex = (currentPage - 1) * pageSize;
+                  const paginatedFunds = sortedFunds.slice(startIndex, startIndex + pageSize);
+                  return paginatedFunds.map((fund) => {
+                    const progress = fund.target_size
+                      ? Math.min((fund.current_size / fund.target_size) * 100, 100)
+                      : 0;
+                    return (
+                      <tr key={fund.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">{fund.name}</div>
@@ -547,12 +543,26 @@ export default function Funds() {
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           )}
         </div>
+        {funds.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(funds.length / pageSize)}
+            totalItems={funds.length}
+            pageSize={pageSize}
+            onPageChange={(page) => setCurrentPage(page)}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
+        )}
       </div>
 
       {/* Add/Edit Modal */}

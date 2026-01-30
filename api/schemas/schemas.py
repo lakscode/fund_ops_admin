@@ -209,11 +209,43 @@ class ChangePassword(BaseModel):
     new_password: str
 
 
+# Role Schemas
+class RoleBase(BaseModel):
+    name: str
+    display_name: str
+    description: Optional[str] = None
+    permissions: Optional[dict] = None
+    is_system: Optional[bool] = False
+    is_active: Optional[bool] = True
+
+
+class RoleCreate(RoleBase):
+    pass
+
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    display_name: Optional[str] = None
+    description: Optional[str] = None
+    permissions: Optional[dict] = None
+    is_active: Optional[bool] = None
+
+
+class RoleResponse(RoleBase):
+    id: str
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 # UserOrganization Schemas
 class UserOrganizationBase(BaseModel):
     user_id: str
     organization_id: str
-    role: Optional[str] = "member"
+    role_id: Optional[str] = None  # Reference to roles collection
+    role: Optional[str] = "viewer"  # Kept for backward compatibility
     is_primary: Optional[bool] = False
 
 
@@ -222,12 +254,17 @@ class UserOrganizationCreate(UserOrganizationBase):
 
 
 class UserOrganizationUpdate(BaseModel):
+    role_id: Optional[str] = None
     role: Optional[str] = None
     is_primary: Optional[bool] = None
 
 
 class UserOrganizationResponse(UserOrganizationBase):
     id: str
+    role_id: Optional[str] = None
+    role: Optional[str] = None
+    role_name: Optional[str] = None  # Populated from role lookup
+    role_display_name: Optional[str] = None  # Populated from role lookup
     joined_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 

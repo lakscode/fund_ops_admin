@@ -50,11 +50,24 @@ class UserDoc(TypedDict, total=False):
     updated_at: Optional[datetime]
 
 
+class RoleDoc(TypedDict, total=False):
+    _id: str
+    name: str  # admin, fund_manager, analyst, viewer, etc.
+    display_name: str  # Human readable name
+    description: Optional[str]
+    permissions: dict  # Permission flags
+    is_system: bool  # True for built-in roles that can't be deleted
+    is_active: bool
+    created_at: datetime
+    updated_at: Optional[datetime]
+
+
 class UserOrganizationDoc(TypedDict, total=False):
     _id: str
     user_id: str
     organization_id: str
-    role: str  # super_admin, fund_accountant, fund_administrator, cfo, general_partner, investor, external_auditor, legal_compliance
+    role_id: str  # Reference to roles collection
+    role: str  # Kept for backward compatibility - populated from role name
     is_primary: bool
     joined_at: datetime
     updated_at: Optional[datetime]

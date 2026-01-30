@@ -1,2 +1,27 @@
 node_modules
 *.pyc
+
+# Environment files (keep .env.example files)
+.env
+.env.development
+.env.test
+.env.production
+.env.local
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build outputs
+dist/
+build/

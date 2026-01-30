@@ -5,7 +5,9 @@ import { fundService } from '../services/funds';
 import { investorService, investorFundService, Investor, InvestorFundAllocation } from '../services/investors';
 import { Fund } from '../types';
 import Modal, { ConfirmModal } from '../components/Modal';
+import Pagination from '../components/Pagination';
 import api from '../services/api';
+import { INVESTOR_TYPES, ALLOCATION_STATUSES, PAGE_SIZE_DEFAULT, DEFAULT_COUNTRY } from '../constants';
 
 interface InvestorFormData {
   name: string;
@@ -37,7 +39,7 @@ const initialFormData: InvestorFormData = {
   address: '',
   city: '',
   state: '',
-  country: 'USA',
+  country: DEFAULT_COUNTRY,
   is_active: true,
 };
 
@@ -48,22 +50,6 @@ const initialAllocationFormData: AllocationFormData = {
   funded_amount: '0',
   status: 'active',
 };
-
-const INVESTOR_TYPES = [
-  { value: 'institutional', label: 'Institutional' },
-  { value: 'individual', label: 'Individual' },
-  { value: 'family_office', label: 'Family Office' },
-  { value: 'pension_fund', label: 'Pension Fund' },
-  { value: 'endowment', label: 'Endowment' },
-  { value: 'sovereign_wealth', label: 'Sovereign Wealth' },
-];
-
-const ALLOCATION_STATUSES = [
-  { value: 'active', label: 'Active' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'completed', label: 'Completed' },
-  { value: 'cancelled', label: 'Cancelled' },
-];
 
 export default function Investors() {
   const { currentOrganization } = useOrganization();
@@ -99,6 +85,10 @@ export default function Investors() {
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT);
 
   useEffect(() => {
     loadData();
@@ -654,10 +644,14 @@ export default function Investors() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {[...investors].sort((a, b) => a.name.localeCompare(b.name)).map((investor) => {
-                  const investorAllocations = getInvestorAllocations(investor.id);
-                  return (
-                    <tr key={investor.id} className="hover:bg-gray-50">
+                {(() => {
+                  const sortedInvestors = [...investors].sort((a, b) => a.name.localeCompare(b.name));
+                  const startIndex = (currentPage - 1) * pageSize;
+                  const paginatedInvestors = sortedInvestors.slice(startIndex, startIndex + pageSize);
+                  return paginatedInvestors.map((investor) => {
+                    const investorAllocations = getInvestorAllocations(investor.id);
+                    return (
+                      <tr key={investor.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">{investor.name}</div>
@@ -734,12 +728,26 @@ export default function Investors() {
                         </button>
                       </td>
                     </tr>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           )}
         </div>
+        {investors.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(investors.length / pageSize)}
+            totalItems={investors.length}
+            pageSize={pageSize}
+            onPageChange={(page) => setCurrentPage(page)}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
+        )}
       </div>
 
       {/* Add/Edit Investor Modal */}

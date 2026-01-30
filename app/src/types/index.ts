@@ -25,11 +25,26 @@ export interface Organization {
   updated_at: string | null;
 }
 
+export interface Role {
+  id: string;
+  name: string;
+  display_name: string;
+  description?: string;
+  permissions?: Record<string, boolean>;
+  is_system: boolean;
+  is_active: boolean;
+  created_at?: string;
+  updated_at?: string | null;
+}
+
 export interface UserOrganization {
   id: string;
   user_id: string;
   organization_id: string;
-  role: string;
+  role?: string;
+  role_id?: string;
+  role_name?: string;
+  role_display_name?: string;
   is_primary: boolean;
   joined_at: string;
   updated_at: string | null;
@@ -60,7 +75,9 @@ export interface UserWithOrganizations extends User {
     id: string;
     name: string;
     code: string | null;
-    role: string;
+    role?: string;
+    role_id?: string;
+    role_display_name?: string;
     is_primary: boolean;
   }>;
 }

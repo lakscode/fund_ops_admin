@@ -5,27 +5,9 @@ import { fundService } from '../services/funds';
 import { propertyService, Property } from '../services/properties';
 import { Fund } from '../types';
 import Modal, { ConfirmModal } from '../components/Modal';
+import Pagination from '../components/Pagination';
 import api from '../services/api';
-
-const PROPERTY_TYPES = [
-  { value: 'multifamily', label: 'Multifamily' },
-  { value: 'office', label: 'Office' },
-  { value: 'retail', label: 'Retail' },
-  { value: 'industrial', label: 'Industrial' },
-  { value: 'mixed_use', label: 'Mixed Use' },
-  { value: 'land', label: 'Land' },
-  { value: 'hotel', label: 'Hotel' },
-  { value: 'self_storage', label: 'Self Storage' },
-  { value: 'senior_living', label: 'Senior Living' },
-  { value: 'student_housing', label: 'Student Housing' },
-];
-
-const PROPERTY_STATUSES = [
-  { value: 'active', label: 'Active' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'under_contract', label: 'Under Contract' },
-  { value: 'sold', label: 'Sold' },
-];
+import { PROPERTY_TYPES, PROPERTY_STATUSES, PAGE_SIZE_DEFAULT, DEFAULT_COUNTRY } from '../constants';
 
 interface PropertyFormData {
   name: string;
@@ -48,7 +30,7 @@ const emptyFormData: PropertyFormData = {
   address: '',
   city: '',
   state: '',
-  country: 'USA',
+  country: DEFAULT_COUNTRY,
   property_type: 'multifamily',
   acquisition_price: '',
   current_value: '',
@@ -85,6 +67,10 @@ export default function Properties() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const pendingFileRef = useRef<File | null>(null);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -797,8 +783,12 @@ export default function Properties() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {[...properties].sort((a, b) => a.name.localeCompare(b.name)).map((property) => (
-                  <tr key={property.id} className="hover:bg-gray-50">
+                {(() => {
+                  const sortedProperties = [...properties].sort((a, b) => a.name.localeCompare(b.name));
+                  const startIndex = (currentPage - 1) * pageSize;
+                  const paginatedProperties = sortedProperties.slice(startIndex, startIndex + pageSize);
+                  return paginatedProperties.map((property) => (
+                    <tr key={property.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{property.name}</div>
@@ -852,11 +842,25 @@ export default function Properties() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                  ));
+                })()}
               </tbody>
             </table>
           )}
         </div>
+        {properties.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={Math.ceil(properties.length / pageSize)}
+            totalItems={properties.length}
+            pageSize={pageSize}
+            onPageChange={(page) => setCurrentPage(page)}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setCurrentPage(1);
+            }}
+          />
+        )}
       </div>
 
       {/* Add Property Modal */}

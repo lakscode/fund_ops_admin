@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import api from '../services/api';
+import { ADMIN_USERNAMES } from '../constants';
 
 interface TestUser {
   id: string;
@@ -27,7 +28,8 @@ export default function Login() {
     // Fetch users for demo purposes
     const fetchUsers = async () => {
       try {
-        const response = await api.get<TestUser[]>('/users?limit=10');
+        const response = await api.get<TestUser[]>('/users?limit=50');
+        console.log("Fetched users:", response.data);
         setTestUsers(response.data);
       } catch (err) {
         console.error('Failed to fetch users:', err);
@@ -55,8 +57,9 @@ export default function Login() {
 
   const selectUser = (user: TestUser) => {
     setUsername(user.username);
-    // Admin has password 'admin123', others have 'password123'
-    setPassword(user.username === 'admin' ? 'admin123' : 'password123');
+    // Admin users (superadmin, sysadmin, orgadmin, viewer) have password 'admin123'
+    // Regular users have password 'password123'
+    setPassword(ADMIN_USERNAMES.includes(user.username) ? 'admin123' : 'password123');
   };
 
   return (
@@ -155,7 +158,7 @@ export default function Login() {
                     <div className="text-right">
                       <p className="text-xs text-gray-400">Password:</p>
                       <p className="text-sm font-mono text-gray-600">
-                        {user.username === 'admin' ? 'admin123' : 'password123'}
+                        {ADMIN_USERNAMES.includes(user.username) ? 'admin123' : 'password123'}
                       </p>
                     </div>
                   </div>

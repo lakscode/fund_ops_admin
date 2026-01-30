@@ -4,12 +4,14 @@ import { UserOrganization } from '../types';
 export interface CreateUserOrganizationData {
   user_id: string;
   organization_id: string;
-  role: string;
+  role?: string;
+  role_id?: string;
   is_primary?: boolean;
 }
 
 export interface UpdateUserOrganizationData {
   role?: string;
+  role_id?: string;
   is_primary?: boolean;
 }
 
